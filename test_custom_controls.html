@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>Custom Controls</title>
+	<style>
+		/* Always set the map height explicitly to define the size of the div
+           * element that contains the map. */
+		#map {
+			height: 90%;
+		}
+		/* Optional: Makes the sample page fill the window. */
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body>
+<div id="map"></div>
+<button id="lock">Lock</button>
+<script>
+	var map;
+	var chicago = {lat: 41.85, lng: -87.65};
+
+	/**
+	 * The CenterControl adds a control to the map that recenters the map on
+	 * Chicago.
+	 * This constructor takes the control DIV as an argument.
+	 * @constructor
+	 */
+	function CenterControl(controlDiv, map) {
+
+		// Set CSS for the control border.
+		var controlUI = document.createElement('div');
+		controlUI.style.backgroundColor = '#fff';
+		controlUI.style.border = '2px solid #fff';
+		controlUI.style.borderRadius = '3px';
+		controlUI.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+		controlUI.style.cursor = 'pointer';
+		controlUI.style.margin = '22px';
+		controlUI.style.textAlign = 'center';
+		controlUI.style.width = '300px';
+		controlUI.style.height = '300px';
+		controlUI.title = 'Click to recenter the map';
+		controlDiv.appendChild(controlUI);
+
+		// Set CSS for the control interior.
+		var controlText = document.createElement('div');
+		controlText.style.color = 'rgb(25,25,25)';
+		controlText.style.fontFamily = 'Roboto,Arial,sans-serif';
+		controlText.style.fontSize = '16px';
+		controlText.style.lineHeight = '38px';
+		controlText.style.paddingLeft = '5px';
+		controlText.style.paddingRight = '5px';
+		controlText.innerHTML = '<div><h1>Craig<h1></div><div><img src="https://viewer.content.glympse.com/components/glympse-viewer/5.3.7/images/spritesheet/ss10.png"/></div>';
+		controlUI.appendChild(controlText);
+
+		// Setup the click event listeners: simply set the map to Chicago.
+		controlUI.addEventListener('click', function() {
+			map.setCenter(chicago);
+		});
+
+	}
+
+	function initMap() {
+		const spriteUrl = 'https://viewer.content.glympse.com/components/glympse-viewer/5.3.7/images/spritesheet/ss10.png';
+		const mapEl = document.getElementById('map');
+		map = new google.maps.Map(mapEl, {
+			zoom: 12,
+			center: chicago,
+			disableDefaultUI: true,
+			minZoom: 2,
+			maxZoom: 15
+		});
+		const mapDimensions = {};
+		const mapOffset = {x:0, y:0};
+
+		// Create the DIV to hold the control and call the CenterControl()
+		// constructor passing in this DIV.
+		var centerControlDiv = document.createElement('div');
+		var centerControl = new CenterControl(centerControlDiv, map);
+
+		centerControlDiv.index = 1;
+		map.controls[google.maps.ControlPosition.TOP_LEFT].push(centerControlDiv);
+
+		var myLatLng = {lat: -25.363, lng: 131.044};
+		var myLatLng2 = {lat: -45.363, lng: 100.044};
+		var myLatLng3 = {lat: -25.363, lng: 90.044};
+
+		let glympseIcon = new google.maps.Marker({
+			position: myLatLng,
+			map: map,
+			title: 'Glympse 1',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		let glympseIcon2 = new google.maps.Marker({
+			position: myLatLng2,
+			map: map,
+			title: 'Glympse 2',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		let glympseIcon3 = new google.maps.Marker({
+			position: myLatLng3,
+			map: map,
+			title: 'Glympse 3',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		///------- LOCK ------
+
+		mapOffset.x = 300; //map offset
+
+
+		const getBounds = function () {
+			var bounds = new google.maps.LatLngBounds();
+			bounds.extend(glympseIcon.getPosition());
+			bounds.extend(glympseIcon2.getPosition());
+			bounds.extend(glympseIcon3.getPosition());
+			return bounds;
+		}
+
+		const getBoundsZoomLevel = function (bounds, dimensions) {
+			const latRadian = function (lat) {
+				let sin = Math.sin(lat * Math.PI / 180);
+				let radX2 = Math.log((1 + sin) / (1 - sin)) / 2;
+				return Math.max( Math.min( radX2, Math.PI ), -Math.PI ) / 2;
+			};
+			const zoom = function (mapPx, worldPx, fraction) {
+				return Math.floor(Math.log(mapPx / worldPx / fraction) / Math.LN2);
+			};
+			const ne = bounds.getNorthEast();
+			const sw = bounds.getSouthWest();
+			const latFraction = (latRadian(ne.lat()) - latRadian(sw.lat())) / Math.PI;
+			const lngDiff = ne.lng() - sw.lng();
+			const lngFraction = ((lngDiff < 0) ? (lngDiff + 360) : lngDiff) / 360;
+			const latZoom = zoom(dimensions.height, 256, latFraction);
+			const lngZoom = zoom(dimensions.width, 256, lngFraction);
+			return Math.min(latZoom, lngZoom, 21);
+		};
+
+		const updateMapDimensions = function () {
+			mapDimensions.height = mapEl.offsetHeight;
+			mapDimensions.width = mapEl.offsetWidth;
+		};
+
+		const offsetLatLng = function (latlng, offsetX, offsetY) {
+			offsetX = offsetX || 0;
+			offsetY = offsetY || 0;
+			const scale = Math.pow(2, map.getZoom());
+			const point = map.getProjection().fromLatLngToPoint(latlng);
+			const pixelOffset = new google.maps.Point((offsetX/scale), (offsetY/scale));
+			const newPoint = new google.maps.Point(
+				point.x - pixelOffset.x,
+				point.y + pixelOffset.y
+			);
+			return map.getProjection().fromPointToLatLng(newPoint);
+		};
+
+		const setOffsetCenter = function (latlng) {
+			const newCenterLatLng = offsetLatLng(latlng, mapOffset.x/2, mapOffset.y/2);
+			map.panTo(newCenterLatLng);
+		};
+
+		const setMapBounds = function(bounds) {
+			updateMapDimensions();
+			const BUFFER = 15;
+			const dimensions = {
+				width: mapDimensions.width - mapOffset.x - BUFFER * 2,
+				height: mapDimensions.height - mapOffset.y - BUFFER * 2
+			};
+			const zoomLevel = getBoundsZoomLevel(bounds, dimensions);
+			map.setZoom(zoomLevel);
+			setOffsetCenter(bounds.getCenter());
+		};
+
+		document.getElementById('lock').addEventListener('click', (e) => {
+			setMapBounds(getBounds());
+		});
+
+	}
+</script>
+<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBIOxQe77DfiORh59KHpH5BhSCVOebuzpI&callback=initMap">
+</script>
+</body>
+</html>

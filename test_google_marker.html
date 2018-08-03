@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>Simple Markers</title>
+	<style>
+		/* Always set the map height explicitly to define the size of the div
+           * element that contains the map. */
+		#map {
+			height: 90%;
+		}
+		/* Optional: Makes the sample page fill the window. */
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body>
+<div id="map"></div>
+<div>
+	<button id="zoomPlus">+</button>
+	<button id="zoomMinus">-</button>
+	<button id="lock">LocK</button>
+</div>
+<script>
+	var spriteUrl = 'https://viewer.content.glympse.com/components/glympse-viewer/5.3.7/images/spritesheet/ss10.png';
+	function initMap() {
+		var myLatLng = {lat: -25.363, lng: 131.044};
+		var myLatLng2 = {lat: -45.363, lng: 100.044};
+		var myLatLng3 = {lat: -25.363, lng: 90.044};
+		var markerLatLng = {lat: -36.363, lng: 144.544};
+
+		var map = new google.maps.Map(document.getElementById('map'), {
+			zoom: 8,
+			center: myLatLng
+		});
+		let glympseIcon = new google.maps.Marker({
+			position: myLatLng,
+			map: map,
+			title: 'PEPSized Coffee',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		let glympseIcon2 = new google.maps.Marker({
+			position: myLatLng2,
+			map: map,
+			title: 'PEPSized Coffee',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		let glympseIcon3 = new google.maps.Marker({
+			position: myLatLng3,
+			map: map,
+			title: 'PEPSized Coffee',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(140, 35),
+				origin: new google.maps.Point(0, 0),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		let markerIcon = new google.maps.Marker({
+			position: markerLatLng,
+			map: map,
+			title: 'PEPSized Coffee',
+			icon: {
+				url: spriteUrl,
+				size: new google.maps.Size(22, 40),
+				origin: new google.maps.Point(102, 150),
+				anchor: new google.maps.Point(0, 0)
+			}
+		});
+
+		var lineCoordinates = [
+			new google.maps.LatLng(-25.363, 131.044),
+			new google.maps.LatLng(-25.463, 131.244),
+			new google.maps.LatLng(-25.503, 131.444),
+			new google.maps.LatLng(-25.563, 131.544),
+			new google.maps.LatLng(-25.763, 131.844),
+			new google.maps.LatLng(-25.863, 132.044),
+			new google.maps.LatLng(-26.063, 132.844),
+			new google.maps.LatLng(-26.163, 133.644),
+			new google.maps.LatLng(-26.363, 134.544)
+		];
+
+		var lineSymbol = {
+			path: google.maps.SymbolPath.CIRCLE,
+			strokeOpacity: 0.5,
+			scale: 2
+		};
+
+		var line = new google.maps.Polyline({
+			path: lineCoordinates,
+			strokeOpacity: 0,
+			icons: [{
+				icon: lineSymbol,
+				offset: '0',
+				repeat: '20px'
+			}],
+			map: map
+		});
+		var rectangle;
+
+		const offsetLatLng = (latlng, offsetX, offsetY) => {
+			offsetX = offsetX || 0;
+			offsetY = offsetY || 0;
+			const scale = Math.pow(2, map.getZoom());
+			const point = map.getProjection().fromLatLngToPoint(latlng);
+			const pixelOffset = new google.maps.Point((offsetX/scale), (offsetY/scale));
+			const newPoint = new google.maps.Point(
+				point.x - pixelOffset.x,
+				point.y + pixelOffset.y
+			);
+			return map.getProjection().fromPointToLatLng(newPoint);
+		};
+
+		let mapOffset = {
+			x: 300,
+			y: 400
+		};
+
+		const zoomWithOffset = shouldZoom => {
+			const currentzoom = map.getZoom();
+			const newzoom = currentzoom - 1;
+			const offset = {
+				x: mapOffset.x/2,
+				y: mapOffset.y/2
+			};
+			const newCenter = offsetLatLng(map.getCenter(), offset.x, offset.y);
+
+			map.setCenter(newCenter);
+			map.setZoom(newzoom);
+
+		};
+
+
+		document.getElementById('zoomPlus').addEventListener('click', (e) => {
+			map.setZoom(map.getZoom() + 1);
+		});
+		document.getElementById('zoomMinus').addEventListener('click', (e) => {
+			map.setZoom(map.getZoom() - 1);
+		});
+		document.getElementById('lock').addEventListener('click', (e) => {
+			var bounds = new google.maps.LatLngBounds();
+			bounds.extend(markerIcon.getPosition());
+			bounds.extend(glympseIcon.getPosition());
+			bounds.extend(glympseIcon2.getPosition());
+			bounds.extend(glympseIcon3.getPosition());
+
+			map.fitBounds(bounds, mapOffset);
+			zoomWithOffset();
+		});
+		let i = 0;
+		/*let intervalId = setInterval(function() {
+			if (i < lineCoordinates.length) {
+				glympseIcon.setPosition(lineCoordinates[i++]);
+			} else {
+				clearInterval(intervalId);
+			}
+		}, 1000);*/
+
+	function point2LatLng(point, map) {
+		var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
+		var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
+		var scale = Math.pow(2, map.getZoom());
+		var worldPoint = new google.maps.Point(point.x / scale + bottomLeft.x, point.y / scale + topRight.y);
+		return map.getProjection().fromPointToLatLng(worldPoint);
+	}
+
+	function delta(point, map) {
+		var scale = Math.pow(2, map.getZoom());
+		var worldPoint = new google.maps.Point(point.x / scale, point.y / scale);
+		return map.getProjection().fromPointToLatLng(worldPoint);
+	}
+
+	map.addListener('bounds_changed', function() {
+		var e = document.getElementById('map');
+		var x1 = point2LatLng({x:0, y: 0}, map);
+		var x2 = point2LatLng({x: 400, y: 300}, map);
+		var bounds = {
+			north: x1.lat(),
+			south: x2.lat(),
+			east: x2.lng(),
+			west: x1.lng()
+		};
+		if (rectangle) {
+			rectangle.setBounds(bounds);
+		} else {
+			rectangle = new google.maps.Rectangle({
+				bounds: bounds,
+				map: map,
+				strokeColor: '#FF0000',
+				strokeOpacity: 0.8,
+				strokeWeight: 2
+			});
+		}
+	});
+	}
+</script>
+<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBIOxQe77DfiORh59KHpH5BhSCVOebuzpI&callback=initMap">
+</script>
+</body>
+</html>

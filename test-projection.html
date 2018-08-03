@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset="utf-8">
+	<title>Simple Markers</title>
+	<style>
+		/* Always set the map height explicitly to define the size of the div
+           * element that contains the map. */
+		#map {
+			height: 90%;
+		}
+		/* Optional: Makes the sample page fill the window. */
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body>
+<div id="map"></div>
+<div>
+	<button id="start">start</button>
+</div>
+<script>
+		const carImageUrl = 'https://viewer.content.glympse.com/configs/partners/papajohns/servtech2/36/images/car.svg';
+		const spriteUrl = 'https://viewer.content.glympse.com/components/glympse-viewer/5.3.7/images/spritesheet/ss10.png';
+
+		function initMap () {
+			const carId = 'car1';
+			const startLatLng = {lat: -25.363, lng: 131.044};
+			const destinationLatLng = {lat: -26.763, lng: 134.544};
+
+			const pathCoordinates = [
+				new google.maps.LatLng(startLatLng),
+				new google.maps.LatLng(-25.463, 131.244),
+			 	new google.maps.LatLng(-25.503, 131.444),
+			 	new google.maps.LatLng(-25.563, 131.544),
+				new google.maps.LatLng(-25.763, 131.844),
+				new google.maps.LatLng(-25.863, 132.044),
+				new google.maps.LatLng(-26.063, 132.844),
+				new google.maps.LatLng(-26.063, 133.044),
+				new google.maps.LatLng(-26.063, 133.344),
+				new google.maps.LatLng(-26.063, 133.644),
+				new google.maps.LatLng(-25.083, 132.544),
+				new google.maps.LatLng(-25.053, 133.544),
+				new google.maps.LatLng(-26.363, 134.544),
+				new google.maps.LatLng(-26.363, 133.544),
+				new google.maps.LatLng(-26.363, 132.544),
+				new google.maps.LatLng(destinationLatLng)
+			];
+
+			var map = new google.maps.Map(document.getElementById('map'), {
+				zoom: 8,
+				center: startLatLng
+			});
+
+			let carIcon = new google.maps.Marker({
+				position: startLatLng,
+				map: map,
+				title: 'Car',
+				icon: {
+					url: carImageUrl + '#' + carId,
+					scaledSize: new google.maps.Size(20, 40),
+					anchor: new google.maps.Point(20, 25)
+				}
+			});
+
+			let destinationIcon = new google.maps.Marker({
+				position: destinationLatLng,
+				map: map,
+				title: 'Destination',
+				icon: {
+					url: spriteUrl,
+					size: new google.maps.Size(22, 40),
+					origin: new google.maps.Point(102, 150),
+					anchor: new google.maps.Point(0, 0)
+				}
+			});
+
+
+			var lineSymbol = {
+				path: google.maps.SymbolPath.CIRCLE,
+				strokeOpacity: 0.5,
+				scale: 2
+			};
+
+			var path = new google.maps.Polyline({
+				path: pathCoordinates,
+				strokeColor: '#FF0000',
+				strokeOpacity: 1.0,
+				strokeWeight: 2,
+				map: map
+			});
+
+			var trail = new google.maps.Polyline({
+				path: [],
+				strokeColor: '#cecece',
+				strokeOpacity: 1.0,
+				strokeWeight: 2,
+				map: map
+			});
+
+			var intervalId;
+
+			document.getElementById('start').addEventListener('click', (e) => {
+				let i = 0;
+				let currentPosition = pathCoordinates[0];
+				var step = calculateStep(fromLatLngToPoint(pathCoordinates[0]), fromLatLngToPoint(pathCoordinates[1]));
+
+				rotateMarker(carImageUrl, carId, directionRotate(fromLatLngToPoint(currentPosition), fromLatLngToPoint(pathCoordinates[1])));
+
+				if (intervalId) clearInterval(intervalId);
+
+				intervalId = setInterval(function () {
+					if (i < pathCoordinates.length - 1) {
+						var currentPoint = fromLatLngToPoint(currentPosition);
+						var nextPoint = fromLatLngToPoint(pathCoordinates[i + 1]);
+
+						var xSign = Math.sign(currentPoint.x - nextPoint.x);
+						var ySign = Math.sign(currentPoint.y - nextPoint.y);
+
+						currentPoint.x = currentPoint.x - xSign * step.x;
+						currentPoint.y = currentPoint.y - ySign * step.y;
+
+						currentPosition = fromPointToLatLng(currentPoint);
+
+						if (google.maps.geometry.spherical.computeDistanceBetween(currentPosition, pathCoordinates[i + 1]) < 10) {
+							i++;
+							rotateMarker(carImageUrl, carId, directionRotate(fromLatLngToPoint(currentPosition), fromLatLngToPoint(pathCoordinates[i + 1])));
+							currentPoint.x = nextPoint.x;
+							currentPoint.y = nextPoint.y;
+							currentPosition = fromPointToLatLng(currentPoint);
+							step = calculateStep(fromLatLngToPoint(pathCoordinates[i]), fromLatLngToPoint(pathCoordinates[i+1]));
+						}
+						trail.getPath().push(currentPosition);
+						carIcon.setPosition(currentPosition);
+					} else {
+						clearInterval(intervalId);
+					}
+				}, 10);
+
+			});
+
+			function rotateMarker(url, selector, degree){
+				var marker = document.querySelector("img[src='" + url + "#" +selector +"']");
+				if (marker && marker.style) {
+					marker.style.transform = 'rotate(' + degree + 'deg)';
+					marker.style.transition = '1s ease-in-out';
+					marker.parentElement.style.overflow = 'visible';
+				}
+			}
+
+
+			function directionRotate(start, end) {
+				var angel = 90 + (180/3.14) * Math.atan2((end.y-start.y), (end.x-start.x));
+				return angel;
+			}
+
+			function calculateStep(start, end) {
+				var partsCount = Math.max(Math.abs(start.x - end.x), Math.abs(start.y - end.y))*10000 || 1000;
+				return {
+					x: Math.abs(start.x - end.x)/partsCount,
+					y: Math.abs(start.y - end.y)/partsCount
+				};
+			}
+
+			function fromLatLngToPoint(latLng) {
+				return map.getProjection().fromLatLngToPoint(latLng);
+			}
+
+			function fromPointToLatLng(point) {
+				return map.getProjection().fromPointToLatLng(point);
+			}
+		}
+</script>
+<script async defer
+		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBIOxQe77DfiORh59KHpH5BhSCVOebuzpI&callback=initMap">
+</script>
+</body>
+</html>
